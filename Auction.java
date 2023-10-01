@@ -30,26 +30,26 @@ public class Auction {
 	}
 
 	// Done
-	private static boolean LoginMenu() throws SQLException{
-		String userID, userPW;
+	private static boolean LoginMenu(){
+		String entered_userID, entered_userPW;
 
 		System.out.print("----< User Login >\n" +
 				" ** To go back, enter 'back' in user ID.\n" +
 				"     user ID: ");
 		try{
-			userID = scanner.next();
+			entered_userID = scanner.next();
 			scanner.nextLine();
 
-			if(userID.equalsIgnoreCase("back")){
+			if(entered_userID.equalsIgnoreCase("back")){
 				return false;
 			}
 
 			System.out.print("     password: ");
-			userPW = scanner.next();
+			entered_userPW = scanner.next();
 			scanner.nextLine();
 		}catch (java.util.InputMismatchException e) {
 			System.out.println("Error: Invalid input is entered. Try again.");
-			userID = null;
+			entered_userID = null;
 			return false;
 		}
 
@@ -58,7 +58,7 @@ public class Auction {
 		
 		try(PreparedStatement ps = conn.prepareStatement(selectQuery)){
 			// Set statment
-            ps.setString(1, userID);
+            ps.setString(1, entered_userID);
 
             // Execute the query
             ResultSet rs = ps.executeQuery();
@@ -66,20 +66,33 @@ public class Auction {
             // Check if a user with the provided username exists
             if (rs.next()) {
                 String storedPassword = rs.getString("Password");
-                boolean isAdmin = rs.getBoolean("IsAdmin");
+                boolean storedIsAdmin = rs.getBoolean("IsAdmin");
 
                 // Compare the entered password with the stored password
-                if (!userPW.equals(storedPassword)) {
-                    System.out.println("Error: Incorrect user name or password");
+                if (entered_userPW.equals(storedPassword)) {
+					userID = entered_userID;
+                } else {
+					System.out.println("Error: Incorrect user name or password");
 					return false;
-                }
+				}
             }
+		}
+		catch(SQLException e){
+			handleSQLException(e);
+			switch(Integer.parseInt(e.getSQLState())){
+				case 23505:
+					System.out.println("Error: User ID already exists. Please choose a different ID.");
+					break;
+				default:
+					System.out.println("Error: Unable to create the user account.");
+					break;
+			}
 		}
 		System.out.println("You are successfully logged in.\n");
 		return true;
 	}
 
-	private static boolean SignupMenu() throws SQLException {
+	private static boolean SignupMenu() {
 		/* 2. Sign Up */
 		String new_userID, new_userpass;
 		boolean new_isAdmin;
@@ -123,17 +136,21 @@ public class Auction {
 			// Execute the insert query
 			ps.executeUpdate();
 		}
+		catch (SQLException e) {
+			handleSQLException(e);
+		}
 
 		System.out.println("Your account has been successfully created.\n");
 		return true;
 	}
 
-	// In Progress
 	private static boolean SellMenu() {
-		Category category;
-		Condition condition;
+		Category category = null;
+		Condition condition = null;
+		String description = " ";
 		char choice;
 		int price;
+		LocalDateTime datePosted;
 		boolean flag_catg = true, flag_cond = true;
 
 		do{
@@ -232,7 +249,7 @@ public class Auction {
 
 		try {
 			System.out.println("---- Description of the item (one line): ");
-			String description = scanner.nextLine();
+			description = scanner.nextLine();
 			System.out.println("---- Buy-It-Now price: ");
 
 			while (!scanner.hasNextInt()) {
@@ -247,7 +264,7 @@ public class Auction {
 			// you may assume users always enter valid date/time
 			String date = scanner.nextLine();  /* "2023-03-04 11:30"; */
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-			LocalDateTime dateTime = LocalDateTime.parse(date, formatter);
+			datePosted = LocalDateTime.parse(date, formatter);
 		}catch (Exception e) {
 			System.out.println("Error: Invalid input is entered. Going back to the previous menu.");
 			return false;
@@ -255,11 +272,32 @@ public class Auction {
 
 		/* TODO: Your code should come here to store the user inputs in your database */
 
+		String insertQuery = "INSERT INTO Items (Category, Description, Condition, SellerID, BuyItNowPrice, DatePosted, Status) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try(PreparedStatement ps = conn.prepareStatement(insertQuery)) {
+          
+            // Set values for the prepared statement
+            ps.setString(1, category.toString());
+            ps.setString(2, description);
+            ps.setString(3, condition.toString());
+            ps.setString(4, userID); // Use the ID of the currently logged-in user
+            ps.setInt(5, price);
+            ps.setObject(6, datePosted);
+            ps.setString(7, "Active"); // Set the status to Active by default
+
+            // Execute the INSERT query
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+			handleSQLException(e);
+		}
+
 		System.out.println("Your item has been successfully listed.\n");
 		return true;
 	}
 
-
+	// In Progress
 	private static boolean AdminMenu() {
 		/* 3. Login as Administrator */
 		char choice;
@@ -566,18 +604,9 @@ public class Auction {
 	}
 
 	private static void handleSQLException(SQLException e) {
-        // System.out.println("SQLException: " + e.getMessage());
-        // System.out.println("SQLState: " + e.getSQLState());
-        // System.out.println("VendorError: " + e.getErrorCode());
-
-		switch(Integer.parseInt(e.getSQLState())){
-			case 23505:
-				System.out.println("Error: User ID already exists. Please choose a different ID.");
-				break;
-			default:
-				System.out.println("Error: Unable to create the user account.");
-				break;
-		}
+        System.out.println("SQLException: " + e.getMessage());
+        System.out.println("SQLState: " + e.getSQLState());
+        System.out.println("VendorError: " + e.getErrorCode());
     }
 
 	public static void main(String[] args) {
