@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.text. *;
 import java.util. *;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
 
 public class Auction {
 	private static Scanner scanner = new Scanner(System.in);
@@ -150,7 +152,7 @@ public class Auction {
 		String description = " ";
 		char choice;
 		int price;
-		LocalDateTime datePosted;
+		Timestamp datePosted;
 		boolean flag_catg = true, flag_cond = true;
 
 		do{
@@ -264,7 +266,9 @@ public class Auction {
 			// you may assume users always enter valid date/time
 			String date = scanner.nextLine();  /* "2023-03-04 11:30"; */
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-			datePosted = LocalDateTime.parse(date, formatter);
+			LocalDateTime localDateTime = LocalDateTime.parse(date, formatter);
+			datePosted = Timestamp.valueOf(localDateTime);
+
 		}catch (Exception e) {
 			System.out.println("Error: Invalid input is entered. Going back to the previous menu.");
 			return false;
@@ -272,8 +276,8 @@ public class Auction {
 
 		/* TODO: Your code should come here to store the user inputs in your database */
 
-		String insertQuery = "INSERT INTO Items (Category, Description, Condition, SellerID, BuyItNowPrice, DatePosted, Status) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?)";
+		String insertQuery = "INSERT INTO Items (Category, Description, Condition, SellerID, BuyItNowPrice, DatePosted) " +
+                    "VALUES (?, ?, ?, ?, ?, ?)";
 
         try(PreparedStatement ps = conn.prepareStatement(insertQuery)) {
           
@@ -283,8 +287,7 @@ public class Auction {
             ps.setString(3, condition.toString());
             ps.setString(4, userID); // Use the ID of the currently logged-in user
             ps.setInt(5, price);
-            ps.setObject(6, datePosted);
-            ps.setString(7, "Active"); // Set the status to Active by default
+			ps.setTimestamp(6, datePosted);
 
             // Execute the INSERT query
             ps.executeUpdate();
@@ -295,6 +298,47 @@ public class Auction {
 
 		System.out.println("Your item has been successfully listed.\n");
 		return true;
+	}
+
+	public static void CheckSellStatus(){
+		/* TODO: Check the status of the item the current user is selling */
+
+		System.out.printf("%-10s | %-30s | %-20s | %-10s | %s%n", "Item ID", "Description", "Bidder (Buyer ID)", "Bid Price", "Bidding Date/Time");
+		System.out.println("------------------------------------------------------------");
+
+		
+		String query = "SELECT i.ItemID, i.Description, b.BidderID, b.BidPrice, i.DatePosted "
+				+ "FROM Items i "
+				+ "LEFT JOIN Biding b ON i.ItemID = b.ItemID "
+				+ "WHERE i.SellerID = ? and DatePosted > NOW() - INTERVAL '1 SECOND'";
+
+		try(PreparedStatement ps = conn.prepareStatement(query)) {
+
+			ps.setString(1, userID); // Replace with the actual current user's ID
+
+			// Execute the query
+			ResultSet rs = ps.executeQuery();
+
+			// Iterate through the result set and print the data
+			while (rs.next()) {
+				
+				String itemID = String.valueOf(rs.getInt("ItemID"));
+				String description = rs.getString("Description");
+				String bidderID = rs.getString("BidderID");
+				BigDecimal bidPrice = rs.getBigDecimal("BidPrice");
+				Timestamp datePosted = rs.getTimestamp("DatePosted");
+
+				// Print the data in a tabular format
+				System.out.printf("%-10s | %-30s | %-20s | %-10s | %s%n",
+						itemID, description, bidderID, bidPrice, datePosted);
+
+			}
+
+		}
+		catch(SQLException e) {
+			handleSQLException(e);
+		}
+
 	}
 
 	// In Progress
@@ -395,18 +439,6 @@ public class Auction {
 				continue;
 			}
 		} while(true);
-	}
-
-	public static void CheckSellStatus(){
-		/* TODO: Check the status of the item the current user is selling */
-
-		System.out.println("item listed in Auction | bidder (buyer ID) | bidding price | bidding date/time \n");
-		System.out.println("-------------------------------------------------------------------------------\n");
-		/*
-		   while(rset.next(){
-		   System.out.println();
-		   }
-		 */
 	}
 
 	public static boolean BuyItem(){
