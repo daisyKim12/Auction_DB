@@ -81,14 +81,6 @@ public class Auction {
 		}
 		catch(SQLException e){
 			handleSQLException(e);
-			switch(Integer.parseInt(e.getSQLState())){
-				case 23505:
-					System.out.println("Error: User ID already exists. Please choose a different ID.");
-					break;
-				default:
-					System.out.println("Error: Unable to create the user account.");
-					break;
-			}
 		}
 		System.out.println("You are successfully logged in.\n");
 		return true;
@@ -140,6 +132,14 @@ public class Auction {
 		}
 		catch (SQLException e) {
 			handleSQLException(e);
+			switch(Integer.parseInt(e.getSQLState())){
+				case 23505:
+					System.out.println("Error: User ID already exists. Please choose a different ID.");
+					break;
+				default:
+					System.out.println("Error: Unable to create the user account.");
+					break;
+			}
 		}
 
 		System.out.println("Your account has been successfully created.\n");
@@ -365,7 +365,36 @@ public class Auction {
 			return false;
 		}
 
-		boolean login_success = true;
+		// check login pw and isAdmin
+        String selectQuery = "SELECT UserID, Password, IsAdmin FROM Users WHERE UserID = ?";
+		boolean login_success = false;
+
+		try(PreparedStatement ps = conn.prepareStatement(selectQuery)){
+			// Set statment
+            ps.setString(1, adminname);
+
+            // Execute the query
+            ResultSet rs = ps.executeQuery();
+
+            // Check if a user with the provided username exists
+            if (rs.next()) {
+                String storedPassword = rs.getString("Password");
+                boolean storedIsAdmin = rs.getBoolean("IsAdmin");
+
+                // Compare the entered password with the stored password
+                if (adminpass.equals(storedPassword) && storedIsAdmin == true) {
+					userID = adminname;
+					System.out.println("You are successfully logged in.\n");
+					login_success = true;
+                } else {
+					System.out.println("Error: Incorrect user name or password or not a Admin");
+					login_success = false;
+				}
+            }
+		}
+		catch(SQLException e){
+			handleSQLException(e);
+		}
 
 		if(!login_success){
 			// login failed. go back to the previous menu.
@@ -758,5 +787,4 @@ public class Auction {
 		} while(true);
 	} // End of main 
 
-	
 } // End of class
