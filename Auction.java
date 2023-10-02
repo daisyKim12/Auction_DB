@@ -424,7 +424,7 @@ public class Auction {
 				keyword = scanner.next();
 				scanner.nextLine();
 				/*TODO: Print Sold Items per Category */
-				System.out.println("sold item       | sold date       | seller ID   | buyer ID   | price | commissions");
+				System.out.println("sold item       | sold date       | seller ID   | buyer ID   | price | commi`ssions");
 				System.out.println("----------------------------------------------------------------------------------");
 				/*
 				   while(rset.next()){
@@ -471,8 +471,8 @@ public class Auction {
 	}
 
 	public static boolean BuyItem(){
-		Category category;
-		Condition condition;
+		Category category = null;
+		Condition condition = null;
 		char choice;
 		int price;
 		String keyword, seller, datePosted;
@@ -594,6 +594,9 @@ public class Auction {
 			return false;
 		}
 
+
+
+
 		/* TODO: Query condition: item category */
 		/* TODO: Query condition: item condition */
 		/* TODO: Query condition: items whose description match the keyword (use LIKE operator) */
@@ -601,12 +604,79 @@ public class Auction {
 		/* TODO: Query condition: posted date of item */
 
 		/* TODO: List all items that match the query condition */
-		System.out.println("Item ID | Item description | Condition | Seller | Buy-It-Now | Current Bid | highest bidder | Time left | bid close");
+		System.out.printf("%-10d | %-30s | %-15s | %-15s | %-12.2f | %-12.2f | %-15s | %-15s | %s%n",
+                    "Item ID", "Item description", "Condition", "Seller", "Buy-It-Now", "Current Bid", "hightest bidder", "Time left", "bid close");
 		System.out.println("-------------------------------------------------------------------------------------------------------");
-		/* 
-		   while(rset.next()){ 
-		   }
-		 */
+
+
+		/* TODO: write a sql query to print out in this format using user input*/
+		String query = "SELECT " +
+				"I.ItemID AS \"Item ID\", " +
+				"I.Description AS \"Item description\", " +
+				"I.Condition AS \"Condition\", " +
+				"I.SellerID AS \"Seller\", " +
+				"I.BuyItNowPrice AS \"Buy-It-Now\", " +
+				"B.BidPrice AS \"Current Bid\", " +
+				"B.BidderID AS \"Highest Bidder\", " +
+				"CASE " +
+				"    WHEN I.DatePosted + INTERVAL '7 days' < NOW() THEN 'Auction Ended' " +
+				"    ELSE TO_CHAR(I.DatePosted + INTERVAL '7 days' - NOW(), 'DD \"days\" HH24 \"hours\" MI \"minutes\"') " +
+				"END AS \"Time Left\", " +
+				"TO_CHAR(I.DatePosted + INTERVAL '7 days', 'YYYY-MM-DD HH24:MI') AS \"Bid Close\" " +
+				"FROM Items I " +
+				"LEFT JOIN ( " +
+				"    SELECT ItemID, BidPrice, BidderID " +
+				"    FROM Biding B1 " +
+				"    WHERE B1.DatePurchase = ( " +
+				"        SELECT MAX(DatePurchase) " +
+				"        FROM Biding B2 " +
+				"        WHERE B1.ItemID = B2.ItemID " +
+				"    ) " +
+				") B ON I.ItemID = B.ItemID " +
+				"WHERE 1=1 "; // This condition ensures that we can always append conditions
+
+		// Append conditions based on user input
+		query += "AND I.Category = ? ";
+		query += "AND I.Condition = ? ";
+		query += "AND I.Description LIKE ? ";
+		query += "AND I.SellerID = ? ";
+		query += "AND I.DatePosted >= ? ";
+
+		try (PreparedStatement ps = conn.prepareStatement(query)) {
+
+			// Set parameter values based on user input
+			ps.setString(1, category.toString());
+			ps.setString(2, condition.toString());
+			ps.setString(3, "%" + keyword + "%");
+			ps.setString(4, seller);
+			ps.setTimestamp(5, Timestamp.valueOf(datePosted));
+
+
+			// Execute the query
+			ResultSet rs = ps.executeQuery();
+
+			// Process and print the results
+			while (rs.next()) {
+				int get_itemID = rs.getInt("ItemID");
+				String get_description = rs.getString("Description");
+				String get_condition = rs.getString("Condition");
+				String get_sellerID = rs.getString("SellerID");
+				BigDecimal get_buyItNowPrice = rs.getBigDecimal("BuyItNowPrice");
+				BigDecimal get_bidPrice = rs.getBigDecimal("BidPrice");
+				String get_bidderID = rs.getString("BidderID");
+				Timestamp get_datePosted = rs.getTimestamp("DatePosted");
+
+				// Print the data in a tabular format (customize as needed)
+				System.out.printf("%-10d | %-30s | %-15s | %-15s | %-12.2f | %-12.2f | %-15s | %s%n",
+						get_itemID, get_description, get_condition, get_sellerID, get_buyItNowPrice, get_bidPrice, get_bidderID, get_datePosted);
+			}
+
+
+		} catch (SQLException e) {
+			handleSQLException(e);
+		}
+		
+   
 
 		System.out.println("---- Select Item ID to buy or bid: ");
 
