@@ -580,75 +580,48 @@ public class Auction {
 			keyword = scanner.next();
 			scanner.nextLine();
 
+			/* TODO: any exception*/
 			System.out.println("---- Enter Seller ID to search : ");
 			System.out.println(" ** Enter 'any' if you want to see items from any seller. ");
 			seller = scanner.next();
+			if (seller == "any") {
+				seller = "";
+			}
 			scanner.nextLine();
 
+			/* TODO: add exception for date posted */
 			System.out.println("---- Enter date posted (YYYY-MM-DD): ");
 			System.out.println(" ** This will search items that have been posted after the designated date.");
+			System.out.println(" ** Enter 'any' if you want to see total items. ");
 			datePosted = scanner.next();
+			datePosted = datePosted + " 00:00:00";
+			// if (datePosted.equals('any')) {
+			// 	datePosted = MIN_DATE;
+			// }
 			scanner.nextLine();
 		} catch (java.util.InputMismatchException e) {
 			System.out.println("Error: Invalid input is entered. Try again.");
 			return false;
 		}
 
-
-
-
-		/* TODO: Query condition: item category */
-		/* TODO: Query condition: item condition */
-		/* TODO: Query condition: items whose description match the keyword (use LIKE operator) */
-		/* TODO: Query condition: items from a particular seller */
-		/* TODO: Query condition: posted date of item */
-
-		/* TODO: List all items that match the query condition */
-		System.out.printf("%-10d | %-30s | %-15s | %-15s | %-12.2f | %-12.2f | %-15s | %-15s | %s%n",
+		// TODO: search all the item by category, condition, keyword search, seller id, date posted
+		System.out.printf("\n<Search result for keyword: %s>\n", keyword);
+		System.out.printf("%-10s | %-30s | %-15s | %-15s | %-15s | %-15s | %-15s | %-15s | %-10s%n",
                     "Item ID", "Item description", "Condition", "Seller", "Buy-It-Now", "Current Bid", "hightest bidder", "Time left", "bid close");
 		System.out.println("-------------------------------------------------------------------------------------------------------");
 
+		String query = "SELECT itemid FROM items WHERE category = ? AND condition = ? AND description LIKE ?" + 
+			" AND sellerid LIKE ?"
+			 + " AND dateposted > ?";
 
-		/* TODO: write a sql query to print out in this format using user input*/
-		String query = "SELECT " +
-				"I.ItemID AS \"Item ID\", " +
-				"I.Description AS \"Item description\", " +
-				"I.Condition AS \"Condition\", " +
-				"I.SellerID AS \"Seller\", " +
-				"I.BuyItNowPrice AS \"Buy-It-Now\", " +
-				"B.BidPrice AS \"Current Bid\", " +
-				"B.BidderID AS \"Highest Bidder\", " +
-				"CASE " +
-				"    WHEN I.DatePosted + INTERVAL '7 days' < NOW() THEN 'Auction Ended' " +
-				"    ELSE TO_CHAR(I.DatePosted + INTERVAL '7 days' - NOW(), 'DD \"days\" HH24 \"hours\" MI \"minutes\"') " +
-				"END AS \"Time Left\", " +
-				"TO_CHAR(I.DatePosted + INTERVAL '7 days', 'YYYY-MM-DD HH24:MI') AS \"Bid Close\" " +
-				"FROM Items I " +
-				"LEFT JOIN ( " +
-				"    SELECT ItemID, BidPrice, BidderID " +
-				"    FROM Biding B1 " +
-				"    WHERE B1.DatePurchase = ( " +
-				"        SELECT MAX(DatePurchase) " +
-				"        FROM Biding B2 " +
-				"        WHERE B1.ItemID = B2.ItemID " +
-				"    ) " +
-				") B ON I.ItemID = B.ItemID " +
-				"WHERE 1=1 "; // This condition ensures that we can always append conditions
-
-		// Append conditions based on user input
-		query += "AND I.Category = ? ";
-		query += "AND I.Condition = ? ";
-		query += "AND I.Description LIKE ? ";
-		query += "AND I.SellerID = ? ";
-		query += "AND I.DatePosted >= ? ";
 
 		try (PreparedStatement ps = conn.prepareStatement(query)) {
-
+			
 			// Set parameter values based on user input
 			ps.setString(1, category.toString());
 			ps.setString(2, condition.toString());
 			ps.setString(3, "%" + keyword + "%");
-			ps.setString(4, seller);
+			ps.setString(4, "%" + seller + "%");
 			ps.setTimestamp(5, Timestamp.valueOf(datePosted));
 
 
@@ -658,18 +631,11 @@ public class Auction {
 			// Process and print the results
 			while (rs.next()) {
 				int get_itemID = rs.getInt("ItemID");
-				String get_description = rs.getString("Description");
-				String get_condition = rs.getString("Condition");
-				String get_sellerID = rs.getString("SellerID");
-				BigDecimal get_buyItNowPrice = rs.getBigDecimal("BuyItNowPrice");
-				BigDecimal get_bidPrice = rs.getBigDecimal("BidPrice");
-				String get_bidderID = rs.getString("BidderID");
-				Timestamp get_datePosted = rs.getTimestamp("DatePosted");
-
-				// Print the data in a tabular format (customize as needed)
-				System.out.printf("%-10d | %-30s | %-15s | %-15s | %-12.2f | %-12.2f | %-15s | %s%n",
-						get_itemID, get_description, get_condition, get_sellerID, get_buyItNowPrice, get_bidPrice, get_bidderID, get_datePosted);
+				System.out.printf("%-10s | %-30s | %-15s | %-15s | %-15s | %-15s | %-15s | %-15s | %-10s%n",
+				    get_itemID, "Item description", "Condition", "Seller", "Buy-It-Now", "Current Bid", "hightest bidder", "Time left", "bid close");
+				System.out.printf("\n");
 			}
+
 
 
 		} catch (SQLException e) {
@@ -678,26 +644,27 @@ public class Auction {
 		
    
 
-		System.out.println("---- Select Item ID to buy or bid: ");
+		// System.out.println("---- Select Item ID to buy or bid: ");
 
-		try {
-			choice = scanner.next().charAt(0);;
-			scanner.nextLine();
-			System.out.println("     Price: ");
-			price = scanner.nextInt();
-			scanner.nextLine();
-		} catch (java.util.InputMismatchException e) {
-			System.out.println("Error: Invalid input is entered. Try again.");
-			return false;
-		}
+		// try {
+		// 	choice = scanner.next().charAt(0);;
+		// 	scanner.nextLine();
+		// 	System.out.println("     Price: ");
+		// 	price = scanner.nextInt();
+		// 	scanner.nextLine();
+		// } catch (java.util.InputMismatchException e) {
+		// 	System.out.println("Error: Invalid input is entered. Try again.");
+		// 	return false;
+		// }
 
-		/* TODO: Buy-it-now or bid: If the entered price is higher or equal to Buy-It-Now price, the bid ends. */
-		/* Even if the bid price is higher than the Buy-It-Now price, the buyer pays the B-I-N price. */
+		// /* TODO: Buy-it-now or bid: If the entered price is higher or equal to Buy-It-Now price, the bid ends. */
+		// /* Even if the bid price is higher than the Buy-It-Now price, the buyer pays the B-I-N price. */
 
-                /* TODO: if you won, print the following */
-		System.out.println("Congratulations, the item is yours now.\n"); 
-                /* TODO: if you are the current highest bidder, print the following */
-		System.out.println("Congratulations, you are the highest bidder.\n"); 
+        //         /* TODO: if you won, print the following */
+		// System.out.println("Congratulations, the item is yours now.\n"); 
+        //         /* TODO: if you are the current highest bidder, print the following */
+		// System.out.println("Congratulations, you are the highest bidder.\n"); 
+		// return true;
 		return true;
 	}
 
@@ -856,5 +823,8 @@ public class Auction {
 			}
 		} while(true);
 	} // End of main 
+
+	/*TODO: error when login unsuccessful it prints out welcome*/
+	/*TODO: error when changing tabs in admin mode*/
 
 } // End of class
