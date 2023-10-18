@@ -265,7 +265,7 @@ public class Auction {
 			System.out.print("---- Bid closing date and time (YYYY-MM-DD HH:MM): ");
 			// you may assume users always enter valid date/time
 			String date = scanner.nextLine();  /* "2023-03-04 11:30"; */
-			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 			LocalDateTime localDateTime = LocalDateTime.parse(date, formatter);
 			datePosted = Timestamp.valueOf(localDateTime);
 
@@ -473,9 +473,10 @@ public class Auction {
 	public static boolean BuyItem(){
 		Category category = null;
 		Condition condition = null;
-		char choice;
-		int price;
-		String keyword, seller, datePosted;
+		int choice;
+		double price;
+		String keyword, seller;
+		Timestamp datePosted;
 		boolean flag_catg = true, flag_cond = true;
 		
 		do {
@@ -580,49 +581,50 @@ public class Auction {
 			keyword = scanner.next();
 			scanner.nextLine();
 
-			/* TODO: any exception*/
 			System.out.println("---- Enter Seller ID to search : ");
 			System.out.println(" ** Enter 'any' if you want to see items from any seller. ");
 			seller = scanner.next();
-			if (seller == "any") {
-				seller = "";
+			if (seller.equals( "any")) {
+				seller = "%";
 			}
 			scanner.nextLine();
 
-			/* TODO: add exception for date posted */
 			System.out.println("---- Enter date posted (YYYY-MM-DD): ");
 			System.out.println(" ** This will search items that have been posted after the designated date.");
 			System.out.println(" ** Enter 'any' if you want to see total items. ");
-			datePosted = scanner.next();
-			datePosted = datePosted + " 00:00:00";
-			// if (datePosted.equals('any')) {
-			// 	datePosted = MIN_DATE;
-			// }
-			scanner.nextLine();
+			String date = scanner.next();
+			if(date.equals("any"))
+				date = "2000-01-01 00:00:00";
+			else
+				date = date + " 00:00:00";
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+			LocalDateTime localDateTime = LocalDateTime.parse(date, formatter);
+			datePosted = Timestamp.valueOf(localDateTime);
+			//scanner.nextLine();
 		} catch (java.util.InputMismatchException e) {
 			System.out.println("Error: Invalid input is entered. Try again.");
 			return false;
 		}
 
-		// TODO: search all the item by category, condition, keyword search, seller id, date posted
+		// search all the item by category, condition, keyword search, seller id, date posted
 		System.out.printf("\n<Search result for keyword: %s>\n", keyword);
-		System.out.printf("%-10s | %-30s | %-15s | %-15s | %-15s | %-15s | %-15s | %-15s | %-10s%n",
-                    "Item ID", "Item description", "Condition", "Seller", "Buy-It-Now", "Current Bid", "hightest bidder", "Time left", "bid close");
+		System.out.printf("%-10s | %-30s | %-15s | %-15s | %-15s | %-15s | %-15s | %-15s%n",
+                    "Item ID", "Item description", "Condition", "Seller", "Buy-It-Now", "Current Bid", "hightest bidder", "Time left");
 		System.out.println("-------------------------------------------------------------------------------------------------------");
 
-		String query = "SELECT itemid FROM items WHERE category = ? AND condition = ? AND description LIKE ?" + 
-			" AND sellerid LIKE ?"
-			 + " AND dateposted > ?";
+		String search_query = "SELECT itemid, description, condition, sellerid, buyitnowprice, (dateposted - CURRENT_TIMESTAMP) as timeleft " +
+			"FROM items WHERE category = ? AND condition = ? AND description LIKE ? " + 
+			"AND sellerid LIKE ?" + " AND dateposted > ?";
 
 
-		try (PreparedStatement ps = conn.prepareStatement(query)) {
+		try (PreparedStatement ps = conn.prepareStatement(search_query)) {
 			
 			// Set parameter values based on user input
 			ps.setString(1, category.toString());
 			ps.setString(2, condition.toString());
 			ps.setString(3, "%" + keyword + "%");
 			ps.setString(4, "%" + seller + "%");
-			ps.setTimestamp(5, Timestamp.valueOf(datePosted));
+			ps.setTimestamp(5, datePosted);
 
 
 			// Execute the query
@@ -631,8 +633,18 @@ public class Auction {
 			// Process and print the results
 			while (rs.next()) {
 				int get_itemID = rs.getInt("ItemID");
-				System.out.printf("%-10s | %-30s | %-15s | %-15s | %-15s | %-15s | %-15s | %-15s | %-10s%n",
-				    get_itemID, "Item description", "Condition", "Seller", "Buy-It-Now", "Current Bid", "hightest bidder", "Time left", "bid close");
+				String get_description = rs.getString("description");
+				String get_condition = rs.getString("condition");
+				String get_sellerid = rs.getString("sellerid");
+				double get_buyitnowprice = rs.getDouble("buyitnowprice");
+		        String get_timeleft = rs.getString("timeleft");
+
+				// Timestamp get_timeleft = rs.getTimestamp("timeleft");
+				// SimpleDateFormat dateFormat = new SimpleDateFormat("dd 'days' HH 'hours' mm 'minutes'");
+				// String get_timeleft_string = dateFormat.format(get_timeleft);
+
+				System.out.printf("%-10s | %-30s | %-15s | %-15s | %-15f | %-15s | %-15s | %-15s%n",
+				    get_itemID, get_description, get_condition, get_sellerid, get_buyitnowprice, "Current Bid", "hightest bidder", get_timeleft);
 				System.out.printf("\n");
 			}
 
@@ -642,30 +654,47 @@ public class Auction {
 			handleSQLException(e);
 		}
 		
-   
+		//TODO: join bidding table and display
 
-		// System.out.println("---- Select Item ID to buy or bid: ");
+		System.out.println("---- Select Item ID to buy or bid: ");
 
-		// try {
-		// 	choice = scanner.next().charAt(0);;
-		// 	scanner.nextLine();
-		// 	System.out.println("     Price: ");
-		// 	price = scanner.nextInt();
-		// 	scanner.nextLine();
-		// } catch (java.util.InputMismatchException e) {
-		// 	System.out.println("Error: Invalid input is entered. Try again.");
-		// 	return false;
-		// }
+		try {
+			choice = scanner.nextInt();
+			scanner.nextLine();
+			System.out.println("     Price: ");
+			price = scanner.nextDouble();
+			scanner.nextLine();
 
-		// /* TODO: Buy-it-now or bid: If the entered price is higher or equal to Buy-It-Now price, the bid ends. */
-		// /* Even if the bid price is higher than the Buy-It-Now price, the buyer pays the B-I-N price. */
+		} catch (java.util.InputMismatchException e) {
+			System.out.println("Error: Invalid input is entered. Try again.");
+			return false;
+		}
 
-        //         /* TODO: if you won, print the following */
-		// System.out.println("Congratulations, the item is yours now.\n"); 
-        //         /* TODO: if you are the current highest bidder, print the following */
-		// System.out.println("Congratulations, you are the highest bidder.\n"); 
-		// return true;
+		String bidding_query = "INSERT INTO Biding (ItemID, BidPrice, BidderID, DatePurchase) " +
+			"VALUES (?, ?, ?, CURRENT_TIMESTAMP) " +
+			"ON CONFLICT (ItemID, BidderID) " +
+			"DO UPDATE SET BidPrice = EXCLUDED.BidPrice " +
+			"WHERE EXCLUDED.BidPrice > Biding.BidPrice;";
+
+		try (PreparedStatement ps = conn.prepareStatement(bidding_query)) {
+			ps.setInt(1, choice);
+		    ps.setDouble(2, price);
+    		ps.setString(3, userID);
+		    ps.executeUpdate();
+
+		} catch (SQLException e) {
+			handleSQLException(e);
+		}
+
+		/* TODO: Buy-it-now or bid: If the entered price is higher or equal to Buy-It-Now price, the bid ends. */
+		/* Even if the bid price is higher than the Buy-It-Now price, the buyer pays the B-I-N price. */
+
+				/* TODO: if you won, print the following */
+		System.out.println("Congratulations, the item is yours now.\n"); 
+				/* TODO: if you are the current highest bidder, print the following */
+		System.out.println("Congratulations, you are the highest bidder.\n"); 
 		return true;
+			
 	}
 
 	public static void CheckBuyStatus(){
