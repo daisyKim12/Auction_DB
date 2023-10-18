@@ -33,27 +33,9 @@ public class Auction {
 
 	// Done
 	private static boolean LoginMenu(){
-		String entered_userID, entered_userPW;
 
-		System.out.print("----< User Login >\n" +
-				" ** To go back, enter 'back' in user ID.\n" +
-				"     user ID: ");
-		try{
-			entered_userID = scanner.next();
-			scanner.nextLine();
-
-			if(entered_userID.equalsIgnoreCase("back")){
-				return false;
-			}
-
-			System.out.print("     password: ");
-			entered_userPW = scanner.next();
-			scanner.nextLine();
-		}catch (java.util.InputMismatchException e) {
-			System.out.println("Error: Invalid input is entered. Try again.");
-			entered_userID = null;
-			return false;
-		}
+		String entered_userID = "test1";
+		String entered_userPW = "1234";
 
 		/* Your code should come here to check ID and password */ 
         String selectQuery = "SELECT UserID, Password, IsAdmin FROM Users WHERE UserID = ?";
@@ -84,6 +66,58 @@ public class Auction {
 		}
 		System.out.println("You are successfully logged in.\n");
 		return true;
+
+
+		// String entered_userID, entered_userPW;
+		// System.out.print("----< User Login >\n" +
+		// 		" ** To go back, enter 'back' in user ID.\n" +
+		// 		"     user ID: ");
+		// try{
+		// 	entered_userID = scanner.next();
+		// 	scanner.nextLine();
+
+		// 	if(entered_userID.equalsIgnoreCase("back")){
+		// 		return false;
+		// 	}
+
+		// 	System.out.print("     password: ");
+		// 	entered_userPW = scanner.next();
+		// 	scanner.nextLine();
+		// }catch (java.util.InputMismatchException e) {
+		// 	System.out.println("Error: Invalid input is entered. Try again.");
+		// 	entered_userID = null;
+		// 	return false;
+		// }
+
+		// /* Your code should come here to check ID and password */ 
+        // String selectQuery = "SELECT UserID, Password, IsAdmin FROM Users WHERE UserID = ?";
+		
+		// try(PreparedStatement ps = conn.prepareStatement(selectQuery)){
+		// 	// Set statment
+        //     ps.setString(1, entered_userID);
+
+        //     // Execute the query
+        //     ResultSet rs = ps.executeQuery();
+
+        //     // Check if a user with the provided username exists
+        //     if (rs.next()) {
+        //         String storedPassword = rs.getString("Password");
+        //         boolean storedIsAdmin = rs.getBoolean("IsAdmin");
+
+        //         // Compare the entered password with the stored password
+        //         if (entered_userPW.equals(storedPassword)) {
+		// 			userID = entered_userID;
+        //         } else {
+		// 			System.out.println("Error: Incorrect user name or password");
+		// 			return false;
+		// 		}
+        //     }
+		// }
+		// catch(SQLException e){
+		// 	handleSQLException(e);
+		// }
+		// System.out.println("You are successfully logged in.\n");
+		// return true;
 	}
 
 	private static boolean SignupMenu() {
@@ -262,7 +296,7 @@ public class Auction {
 			price = scanner.nextInt();
 			scanner.nextLine();
 
-			System.out.print("---- Bid closing date and time (YYYY-MM-DD HH:MM): ");
+			System.out.print("---- Bid closing date and time (YYYY-MM-DD HH:MM:SS): ");
 			// you may assume users always enter valid date/time
 			String date = scanner.nextLine();  /* "2023-03-04 11:30"; */
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -612,10 +646,14 @@ public class Auction {
                     "Item ID", "Item description", "Condition", "Seller", "Buy-It-Now", "Current Bid", "hightest bidder", "Time left");
 		System.out.println("-------------------------------------------------------------------------------------------------------");
 
-		String search_query = "SELECT itemid, description, condition, sellerid, buyitnowprice, (dateposted - CURRENT_TIMESTAMP) as timeleft " +
-			"FROM items WHERE category = ? AND condition = ? AND description LIKE ? " + 
-			"AND sellerid LIKE ?" + " AND dateposted > ?";
-
+		String search_query = "SELECT i.itemid, i.description, i.condition, i.sellerid, i.buyitnowprice, (i.dateposted - CURRENT_TIMESTAMP) as timeleft" +
+			", b.bidprice, b.bidderid " +
+			"FROM items AS i " +
+			"LEFT JOIN (SELECT itemid, bidprice, bidderid FROM biding b1 WHERE b1.bidprice = " +
+			"(SELECT MAX(b2.bidprice) FROM biding b2 WHERE b2.itemid = b1.itemid)) AS b " +
+			"ON i.itemid = b.itemid " +
+			"WHERE i.category = ? AND i.condition = ? AND i.description LIKE ? " +
+			"AND i.sellerid LIKE ? AND i.dateposted > ?  AND i.dateposted > CURRENT_TIMESTAMP AND i.sold = false";
 
 		try (PreparedStatement ps = conn.prepareStatement(search_query)) {
 			
@@ -631,31 +669,29 @@ public class Auction {
 			ResultSet rs = ps.executeQuery();
 
 			// Process and print the results
-			while (rs.next()) {
-				int get_itemID = rs.getInt("ItemID");
-				String get_description = rs.getString("description");
-				String get_condition = rs.getString("condition");
-				String get_sellerid = rs.getString("sellerid");
-				double get_buyitnowprice = rs.getDouble("buyitnowprice");
-		        String get_timeleft = rs.getString("timeleft");
+			if (!rs.next()) {
+				System.out.println("No matching items found.");
+				return true;
+			} else {
+				do {
+					int get_itemID = rs.getInt("ItemID");
+					String get_description = rs.getString("description");
+					String get_condition = rs.getString("condition");
+					String get_sellerid = rs.getString("sellerid");
+					double get_buyitnowprice = rs.getDouble("buyitnowprice");
+					String get_timeleft = rs.getString("timeleft");
+					//TODO: format timeleft
 
-				// Timestamp get_timeleft = rs.getTimestamp("timeleft");
-				// SimpleDateFormat dateFormat = new SimpleDateFormat("dd 'days' HH 'hours' mm 'minutes'");
-				// String get_timeleft_string = dateFormat.format(get_timeleft);
-
-				System.out.printf("%-10s | %-30s | %-15s | %-15s | %-15f | %-15s | %-15s | %-15s%n",
-				    get_itemID, get_description, get_condition, get_sellerid, get_buyitnowprice, "Current Bid", "hightest bidder", get_timeleft);
-				System.out.printf("\n");
+					System.out.printf("%-10s | %-30s | %-15s | %-15s | %-15f | %-15s | %-15s | %-15s%n",
+						get_itemID, get_description, get_condition, get_sellerid, get_buyitnowprice, "Current Bid", "hightest bidder", get_timeleft);
+					System.out.printf("\n");
+				} while (rs.next());
 			}
-
-
 
 		} catch (SQLException e) {
 			handleSQLException(e);
 		}
 		
-		//TODO: join bidding table and display
-
 		System.out.println("---- Select Item ID to buy or bid: ");
 
 		try {
@@ -685,6 +721,42 @@ public class Auction {
 		} catch (SQLException e) {
 			handleSQLException(e);
 		}
+
+		// TODO: restric user to bid on item sold with buy it now price
+	
+		// //sold must be in a different table
+		// String bidding_query = "UPDATE items SET sold = true FROM Items WHERE items.itemid = ? item." +
+		// 	"WHERE Item.sold = false AND Item.dateposted < CURRENT-TIMESTAMP OR buyitnowprice < ? " +
+		// 	"Biding.ItemID = Items.ItemID " +
+		// 	"AND Biding.ItemID = ? " +
+		// 	"AND Biding.BidderID = ? " +
+		// 	"AND ? > Items.BuyItNowPrice;";
+
+		// String bidding_query = "UPDATE Biding " +
+		// 	"SET BidPrice = ?, DatePurchase = items.dateposted " +
+		// 	"FROM Items " +
+		// 	"WHERE Item.sold = false AND Item.dateposted < CURRENT-TIMESTAMP OR buyitnowprice < ? " +
+		// 	"Biding.ItemID = Items.ItemID " +
+		// 	"AND Biding.ItemID = ? " +
+		// 	"AND Biding.BidderID = ? " +
+		// 	"AND ? > Items.BuyItNowPrice;";
+
+		// try (PreparedStatement ps = conn.prepareStatement(bidding_query)) {
+		// 	ps.setDouble(1, price);
+		// 	ps.setInt(2, choice);
+		// 	ps.setString(3, userID);
+		// 	ps.setDouble(4, price);
+		// 	int rowsUpdated = ps.executeUpdate();
+		// 	if (rowsUpdated > 0) {
+		// 		// Item sold, you can update the 'Items' table to set 'sold' to true here
+		// 	} else {
+		// 		// Handle the case where the item was not sold
+		// 	}
+		// } catch (SQLException e) {
+		// 	handleSQLException(e);
+		// }
+
+
 
 		/* TODO: Buy-it-now or bid: If the entered price is higher or equal to Buy-It-Now price, the bid ends. */
 		/* Even if the bid price is higher than the Buy-It-Now price, the buyer pays the B-I-N price. */
