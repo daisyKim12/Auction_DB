@@ -138,20 +138,20 @@ public class Auction {
 			scanner.nextLine();
 			System.out.print("---- In this user an administrator? (Y/N): ");
 			String temp = scanner.next().toLowerCase();
-			if (temp.equals("Y")) {
+			if (temp.equals("y")) {
 				new_isAdmin = true;
-			} else if (temp.equals("N")) {
+			} else if (temp.equals("n")) {
 				new_isAdmin = false;
 			} else {
 				return false;
 			}
 			scanner.nextLine();
+			System.out.println("Account successfully created");
 		} catch (java.util.InputMismatchException e) {
 			System.out.println("Error: Invalid input is entered. Please select again.");
 			return false;
 		}
 
-		/* TODO: Your code should come here to create a user account in your database */
 		// Create a prepared statement for inserting user data into the Users table
 		String insertQuery = "INSERT INTO Users (UserID, Password, IsAdmin) VALUES (?, ?, ?)";
 		
@@ -642,7 +642,7 @@ public class Auction {
 
 		// search all the item by category, condition, keyword search, seller id, date posted
 		System.out.printf("\n<Search result for keyword: %s>\n", keyword);
-		System.out.printf("%-10s | %-30s | %-15s | %-15s | %-15s | %-15s | %-15s | %-15s%n",
+		System.out.printf("%-7s | %-20s | %-10s | %-10s | %-15s | %-15s | %-15s | %-10s%n",
                     "Item ID", "Item description", "Condition", "Seller", "Buy-It-Now", "Current Bid", "hightest bidder", "Time left");
 		System.out.println("-------------------------------------------------------------------------------------------------------");
 
@@ -679,10 +679,12 @@ public class Auction {
 					String get_condition = rs.getString("condition");
 					String get_sellerid = rs.getString("sellerid");
 					double get_buyitnowprice = rs.getDouble("buyitnowprice");
+					
+					
 					String get_timeleft = rs.getString("timeleft");
-					//TODO: format timeleft
+					get_timeleft = String.valueOf(get_timeleft.indexOf(" days")) + "days";
 
-					System.out.printf("%-10s | %-30s | %-15s | %-15s | %-15f | %-15s | %-15s | %-15s%n",
+					System.out.printf("%-7s | %-20s | %-10s | %-10s | %-15f | %-15s | %-10s | %-10s%n",
 						get_itemID, get_description, get_condition, get_sellerid, get_buyitnowprice, "Current Bid", "hightest bidder", get_timeleft);
 					System.out.printf("\n");
 				} while (rs.next());
@@ -705,7 +707,7 @@ public class Auction {
 			System.out.println("Error: Invalid input is entered. Try again.");
 			return false;
 		}
-
+ㅠ
 		String bidding_query = "INSERT INTO Biding (ItemID, BidPrice, BidderID, DatePurchase) " +
 			"VALUES (?, ?, ?, CURRENT_TIMESTAMP) " +
 			"ON CONFLICT (ItemID, BidderID) " +
@@ -861,7 +863,6 @@ public class Auction {
 					case 'q':
 					case 'Q':
 						System.out.println("Good Bye");
-						/* TODO: close the connection and clean up everything here */
 						conn.close();
 						System.exit(1);
 					default:
