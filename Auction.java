@@ -642,9 +642,9 @@ public class Auction {
 
 		// search all the item by category, condition, keyword search, seller id, date posted
 		System.out.printf("\n<Search result for keyword: %s>\n", keyword);
-		System.out.printf("%-7s | %-20s | %-10s | %-10s | %-15s | %-15s | %-15s | %-10s%n",
-                    "Item ID", "Item description", "Condition", "Seller", "Buy-It-Now", "Current Bid", "hightest bidder", "Time left");
-		System.out.println("-------------------------------------------------------------------------------------------------------");
+		System.out.printf("%-7s | %-20s | %-10s | %-10s | %-15s | %-20s | %-10s|\n",
+                    "Item ID", "Item description", "Condition", "Seller", "Buy-It-Now", "Highest Bid(Bidder)", "Time left");
+		System.out.println("---------------------------------------------------------------------------------------------------------------");
 
 		String search_query = "SELECT i.itemid, i.description, i.condition, i.sellerid, i.buyitnowprice, (i.dateposted - CURRENT_TIMESTAMP) as timeleft" +
 			", b.bidprice, b.bidderid " +
@@ -679,13 +679,18 @@ public class Auction {
 					String get_condition = rs.getString("condition");
 					String get_sellerid = rs.getString("sellerid");
 					double get_buyitnowprice = rs.getDouble("buyitnowprice");
-					
+					double get_highest_bid = rs.getDouble("bidprice");
+					String get_highest_bidder = "(" + rs.getString("bidderid") + ")";
 					
 					String get_timeleft = rs.getString("timeleft");
-					get_timeleft = String.valueOf(get_timeleft.indexOf(" days")) + "days";
-
-					System.out.printf("%-7s | %-20s | %-10s | %-10s | %-15f | %-15s | %-10s | %-10s%n",
-						get_itemID, get_description, get_condition, get_sellerid, get_buyitnowprice, "Current Bid", "hightest bidder", get_timeleft);
+					if(get_timeleft.indexOf(" days") == 0) {
+						get_timeleft = "d-day";
+					} else {
+						get_timeleft = String.valueOf(get_timeleft.indexOf(" days")) + " days";
+					}
+					System.out.printf("%-7s | %-20s | %-10s | %-10s | %-15f | %-20s | %-10s|\n",
+						get_itemID, get_description, get_condition, get_sellerid, get_buyitnowprice, 
+						String.valueOf(get_highest_bid) + get_highest_bidder, get_timeleft);
 					System.out.printf("\n");
 				} while (rs.next());
 			}
@@ -707,7 +712,7 @@ public class Auction {
 			System.out.println("Error: Invalid input is entered. Try again.");
 			return false;
 		}
-ㅠ
+
 		String bidding_query = "INSERT INTO Biding (ItemID, BidPrice, BidderID, DatePurchase) " +
 			"VALUES (?, ?, ?, CURRENT_TIMESTAMP) " +
 			"ON CONFLICT (ItemID, BidderID) " +
@@ -723,50 +728,31 @@ public class Auction {
 		} catch (SQLException e) {
 			handleSQLException(e);
 		}
-
-		// TODO: restric user to bid on item sold with buy it now price
-	
-		// //sold must be in a different table
-		// String bidding_query = "UPDATE items SET sold = true FROM Items WHERE items.itemid = ? item." +
-		// 	"WHERE Item.sold = false AND Item.dateposted < CURRENT-TIMESTAMP OR buyitnowprice < ? " +
-		// 	"Biding.ItemID = Items.ItemID " +
-		// 	"AND Biding.ItemID = ? " +
-		// 	"AND Biding.BidderID = ? " +
-		// 	"AND ? > Items.BuyItNowPrice;";
-
-		// String bidding_query = "UPDATE Biding " +
-		// 	"SET BidPrice = ?, DatePurchase = items.dateposted " +
-		// 	"FROM Items " +
-		// 	"WHERE Item.sold = false AND Item.dateposted < CURRENT-TIMESTAMP OR buyitnowprice < ? " +
-		// 	"Biding.ItemID = Items.ItemID " +
-		// 	"AND Biding.ItemID = ? " +
-		// 	"AND Biding.BidderID = ? " +
-		// 	"AND ? > Items.BuyItNowPrice;";
-
-		// try (PreparedStatement ps = conn.prepareStatement(bidding_query)) {
-		// 	ps.setDouble(1, price);
-		// 	ps.setInt(2, choice);
-		// 	ps.setString(3, userID);
-		// 	ps.setDouble(4, price);
-		// 	int rowsUpdated = ps.executeUpdate();
-		// 	if (rowsUpdated > 0) {
-		// 		// Item sold, you can update the 'Items' table to set 'sold' to true here
-		// 	} else {
-		// 		// Handle the case where the item was not sold
-		// 	}
-		// } catch (SQLException e) {
-		// 	handleSQLException(e);
-		// }
+		
+		/* TODO: check sold and if sold the user is over buy it now price and the biding is over */
+		String check_biding_status_query = "select i.sold, b.highest from items i join " + 
+			"(select itemid, max(bidprice) as highest from biding group by itemid having itemid = ?) b on i.itemid = b.itemid";
 
 
+		try(PreparedStatement ps = conn.prepareStatement(check_biding_status_query)) {
+			ps.setInt(1, choice);
 
-		/* TODO: Buy-it-now or bid: If the entered price is higher or equal to Buy-It-Now price, the bid ends. */
-		/* Even if the bid price is higher than the Buy-It-Now price, the buyer pays the B-I-N price. */
+			ResultSet rs = ps.executeQuery();
 
-				/* TODO: if you won, print the following */
-		System.out.println("Congratulations, the item is yours now.\n"); 
-				/* TODO: if you are the current highest bidder, print the following */
-		System.out.println("Congratulations, you are the highest bidder.\n"); 
+			while (rs.next()) {
+				boolean get_sold = rs.getBoolean("sold");
+				double get_highest = rs.getDouble("highest");
+				
+				if(get_sold == true) {
+					System.out.println("Congratulations, the item is yours now.\n"); 
+				} else if(get_highest == price) {
+					System.out.println("Congratulations, you are the highest bidder.\n"); 
+				}
+			}
+		} catch (SQLException e) {
+			handleSQLException(e);
+		}
+
 		return true;
 			
 	}
