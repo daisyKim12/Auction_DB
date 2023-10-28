@@ -34,60 +34,8 @@ public class Auction {
 	// Done
 	private static boolean LoginMenu(){
 
-		String entered_userID = "test1";
-		String entered_userPW = "1234";
-
-		/* Your code should come here to check ID and password */ 
-        String selectQuery = "SELECT UserID, Password, IsAdmin FROM Users WHERE UserID = ?";
-		
-		try(PreparedStatement ps = conn.prepareStatement(selectQuery)){
-			// Set statment
-            ps.setString(1, entered_userID);
-
-            // Execute the query
-            ResultSet rs = ps.executeQuery();
-
-            // Check if a user with the provided username exists
-            if (rs.next()) {
-                String storedPassword = rs.getString("Password");
-                boolean storedIsAdmin = rs.getBoolean("IsAdmin");
-
-                // Compare the entered password with the stored password
-                if (entered_userPW.equals(storedPassword)) {
-					userID = entered_userID;
-                } else {
-					System.out.println("Error: Incorrect user name or password");
-					return false;
-				}
-            }
-		}
-		catch(SQLException e){
-			handleSQLException(e);
-		}
-		System.out.println("You are successfully logged in.\n");
-		return true;
-
-
-		// String entered_userID, entered_userPW;
-		// System.out.print("----< User Login >\n" +
-		// 		" ** To go back, enter 'back' in user ID.\n" +
-		// 		"     user ID: ");
-		// try{
-		// 	entered_userID = scanner.next();
-		// 	scanner.nextLine();
-
-		// 	if(entered_userID.equalsIgnoreCase("back")){
-		// 		return false;
-		// 	}
-
-		// 	System.out.print("     password: ");
-		// 	entered_userPW = scanner.next();
-		// 	scanner.nextLine();
-		// }catch (java.util.InputMismatchException e) {
-		// 	System.out.println("Error: Invalid input is entered. Try again.");
-		// 	entered_userID = null;
-		// 	return false;
-		// }
+		// String entered_userID = "test1";
+		// String entered_userPW = "1234";
 
 		// /* Your code should come here to check ID and password */ 
         // String selectQuery = "SELECT UserID, Password, IsAdmin FROM Users WHERE UserID = ?";
@@ -118,6 +66,60 @@ public class Auction {
 		// }
 		// System.out.println("You are successfully logged in.\n");
 		// return true;
+
+
+		String entered_userID, entered_userPW;
+		System.out.print("----< User Login >\n" +
+				" ** To go back, enter 'back' in user ID.\n" +
+				"     user ID: ");
+		try{
+			entered_userID = scanner.next();
+			scanner.nextLine();
+
+			if(entered_userID.equalsIgnoreCase("back")){
+				return false;
+			}
+
+			System.out.print("     password: ");
+			entered_userPW = scanner.next();
+			scanner.nextLine();
+		}catch (java.util.InputMismatchException e) {
+			System.out.println("Error: Invalid input is entered. Try again.");
+			entered_userID = null;
+			return false;
+		}
+
+		/* Your code should come here to check ID and password */ 
+        String selectQuery = "SELECT UserID, Password, IsAdmin FROM Users WHERE UserID = ?";
+		
+		try(PreparedStatement ps = conn.prepareStatement(selectQuery)){
+			// Set statment
+            ps.setString(1, entered_userID);
+
+            // Execute the query
+            ResultSet rs = ps.executeQuery();
+
+            // Check if a user with the provided username exists
+            if (rs.next()) {
+                String storedPassword = rs.getString("Password");
+                boolean storedIsAdmin = rs.getBoolean("IsAdmin");
+
+				if(storedIsAdmin == true) {
+					System.out.println("You are a Administrator login using case 3");
+					return false;
+				} else if (entered_userPW.equals(storedPassword)) {
+					userID = entered_userID;
+                } else {
+					System.out.println("Error: Incorrect user name or password");
+					return false;
+				}
+            }
+		}
+		catch(SQLException e){
+			handleSQLException(e);
+		}
+		System.out.println("You are successfully logged in.\n");
+		return true;
 	}
 
 	private static boolean SignupMenu() {
@@ -308,8 +310,6 @@ public class Auction {
 			return false;
 		}
 
-		/* TODO: Your code should come here to store the user inputs in your database */
-
 		String insertQuery = "INSERT INTO Items (Category, Description, Condition, SellerID, BuyItNowPrice, DatePosted) " +
                     "VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -373,135 +373,6 @@ public class Auction {
 			handleSQLException(e);
 		}
 
-	}
-
-	// In Progress
-	private static boolean AdminMenu() {
-		/* 3. Login as Administrator */
-		char choice;
-		String adminname, adminpass;
-		String keyword, seller;
-		System.out.print("----< Login as Administrator >\n" +
-				" ** To go back, enter 'back' in user ID.\n" +
-				"---- admin ID: ");
-
-		try {
-			adminname = scanner.next();
-			scanner.nextLine();
-			if(adminname.equalsIgnoreCase("back")){
-				return false;
-			}
-			System.out.print("---- password: ");
-			adminpass = scanner.nextLine();
-			// TODO: check the admin's account and password.
-		} catch (java.util.InputMismatchException e) {
-			System.out.println("Error: Invalid input is entered. Try again.");
-			return false;
-		}
-
-		// check login pw and isAdmin
-        String selectQuery = "SELECT UserID, Password, IsAdmin FROM Users WHERE UserID = ?";
-		boolean login_success = false;
-
-		try(PreparedStatement ps = conn.prepareStatement(selectQuery)){
-			// Set statment
-            ps.setString(1, adminname);
-
-            // Execute the query
-            ResultSet rs = ps.executeQuery();
-
-            // Check if a user with the provided username exists
-            if (rs.next()) {
-                String storedPassword = rs.getString("Password");
-                boolean storedIsAdmin = rs.getBoolean("IsAdmin");
-
-                // Compare the entered password with the stored password
-                if (adminpass.equals(storedPassword) && storedIsAdmin == true) {
-					userID = adminname;
-					System.out.println("You are successfully logged in.\n");
-					login_success = true;
-                } else {
-					System.out.println("Error: Incorrect user name or password or not a Admin");
-					login_success = false;
-				}
-            }
-		}
-		catch(SQLException e){
-			handleSQLException(e);
-		}
-
-		if(!login_success){
-			// login failed. go back to the previous menu.
-			return false;
-		}
-
-		do {
-			System.out.println(
-					"----< Admin menu > \n" +
-					"    1. Print Sold Items per Category \n" +
-					"    2. Print Account Balance for Seller \n" +
-					"    3. Print Seller Ranking \n" +
-					"    4. Print Buyer Ranking \n" +
-					"    P. Go Back to Previous Menu"
-					);
-
-			try {
-				choice = scanner.next().charAt(0);;
-				scanner.nextLine();
-			} catch (java.util.InputMismatchException e) {
-				System.out.println("Error: Invalid input is entered. Try again.");
-				continue;
-			}
-
-			if (choice == '1') {
-				System.out.println("----Enter Category to search : ");
-				keyword = scanner.next();
-				scanner.nextLine();
-				/*TODO: Print Sold Items per Category */
-				System.out.println("sold item       | sold date       | seller ID   | buyer ID   | price | commi`ssions");
-				System.out.println("----------------------------------------------------------------------------------");
-				/*
-				   while(rset.next()){
-				   }
-				 */
-				continue;
-			} else if (choice == '2') {
-				/*TODO: Print Account Balance for Seller */
-				System.out.println("---- Enter Seller ID to search : ");
-				seller = scanner.next();
-				scanner.nextLine();
-				System.out.println("sold item       | sold date       | buyer ID   | price | commissions");
-				System.out.println("--------------------------------------------------------------------");
-				/*
-				   while(rset.next()){
-				   }
-				 */
-				continue;
-			} else if (choice == '3') {
-				/*TODO: Print Seller Ranking */
-				System.out.println("seller ID   | # of items sold | Total Profit (excluding commissions)");
-				System.out.println("--------------------------------------------------------------------");
-				/*
-				   while(rset.next()){
-				   }
-				 */
-				continue;
-			} else if (choice == '4') {
-				/*TODO: Print Buyer Ranking */
-				System.out.println("buyer ID   | # of items purchased | Total Money Spent ");
-				System.out.println("------------------------------------------------------");
-				/*
-				   while(rset.next()){
-				   }
-				 */
-				continue;
-			} else if (choice == 'P' || choice == 'p') {
-				return false;
-			} else {
-				System.out.println("Error: Invalid input is entered. Try again.");
-				continue;
-			}
-		} while(true);
 	}
 
 	public static boolean BuyItem(){
@@ -729,7 +600,6 @@ public class Auction {
 			handleSQLException(e);
 		}
 		
-		/* TODO: check sold and if sold the user is over buy it now price and the biding is over */
 		String check_biding_status_query = "select i.sold, b.highest from items i join " + 
 			"(select itemid, max(bidprice) as highest from biding group by itemid having itemid = ?) b on i.itemid = b.itemid";
 
@@ -756,6 +626,196 @@ public class Auction {
 		return true;
 			
 	}
+
+	// In Progress
+	private static boolean AdminMenu() {
+		/* 3. Login as Administrator */
+		char choice;
+		String adminname, adminpass;
+		String keyword, seller;
+		System.out.print("----< Login as Administrator >\n" +
+				" ** To go back, enter 'back' in user ID.\n" +
+				"---- admin ID: ");
+
+		try {
+			adminname = scanner.next();
+			scanner.nextLine();
+			if(adminname.equalsIgnoreCase("back")){
+				return false;
+			}
+			System.out.print("---- password: ");
+			adminpass = scanner.nextLine();
+			// TODO: check the admin's account and password.
+		} catch (java.util.InputMismatchException e) {
+			System.out.println("Error: Invalid input is entered. Try again.");
+			return false;
+		}
+
+		// check login pw and isAdmin
+        String selectQuery = "SELECT UserID, Password, IsAdmin FROM Users WHERE UserID = ?";
+		boolean login_success = false;
+
+		try(PreparedStatement ps = conn.prepareStatement(selectQuery)){
+			// Set statment
+            ps.setString(1, adminname);
+
+            // Execute the query
+            ResultSet rs = ps.executeQuery();
+
+            // Check if a user with the provided username exists
+            if (rs.next()) {
+                String storedPassword = rs.getString("Password");
+                boolean storedIsAdmin = rs.getBoolean("IsAdmin");
+
+                // Compare the entered password with the stored password
+                if (adminpass.equals(storedPassword) && storedIsAdmin == true) {
+					userID = adminname;
+					System.out.println("You are successfully logged in.\n");
+					login_success = true;
+                } else {
+					System.out.println("Error: Incorrect user name or password or not a Admin");
+					login_success = false;
+				}
+            }
+		}
+		catch(SQLException e){
+			handleSQLException(e);
+		}
+
+		if(!login_success){
+			// login failed. go back to the previous menu.
+			return false;
+		}
+
+		do {
+			System.out.println(
+					"----< Admin menu > \n" +
+					"    1. Print Sold Items per Category \n" +
+					"    2. Print Account Balance for Seller \n" +
+					"    3. Print Seller Ranking \n" +
+					"    4. Print Buyer Ranking \n" +
+					"    P. Logout from Admin"
+					);
+
+			try {
+				choice = scanner.next().charAt(0);;
+				scanner.nextLine();
+			} catch (java.util.InputMismatchException e) {
+				System.out.println("Error: Invalid input is entered. Try again.");
+				continue;
+			}
+
+			if (choice == '1') {
+				System.out.println(
+					"----Enter Category to search \n" +
+					"    1. Electronics\n" +
+					"    2. Books\n" +
+					"    3. Home\n" +
+					"    4. Clothing\n" +
+					"    5. Sporting Goods\n" +
+					"    6. Other Categories\n" +
+					"    7. Any Categories\n"
+					);
+					//TODO: other and any category debug
+				keyword = scanner.next();
+				String category;
+
+				switch (keyword){
+					case "1":
+						category = String.valueOf(Category.ELECTRONICS);
+						break;
+					case "2":
+						category = String.valueOf(Category.BOOKS);
+						break;
+					case "3":
+						category = String.valueOf(Category.HOME);
+						break;
+					case "4":
+						category = String.valueOf(Category.CLOTHING);
+						break;
+					case "5":
+						category = String.valueOf(Category.SPORTINGGOODS);
+						break;
+					case "6":
+						category = String.valueOf(Category.OTHERS);
+						break;
+					case "7":
+					default:
+						category = "*";
+				}
+				
+				//scanner.nextLine();
+
+				//Refresh billing status
+				refreshBillingStatusByDate();
+
+				/*TODO: Print Sold Items per Category */
+				System.out.println("sold item       | sold date       | seller ID   | buyer ID   | price | commissions");
+				System.out.println("----------------------------------------------------------------------------------");
+
+				// String search_with_category_query = "select itemid, datesold, sellerid, buyerid, buyerneedstopay, sellercommission from billing " + 
+				// 	"where itemid in (select itemid from items where category = ?);";
+				
+				// try(PreparedStatement ps = conn.prepareStatement(search_with_category_query)) {
+				// 	ps.setString(1, category);
+				// 	ResultSet rs = ps.executeQuery();
+
+				// 	// Check if a user with the provided username exists
+				// 	if (rs.next()) {
+				// 		int itemid = rs.getInt("itemid");
+				// 		Timestamp datesold = rs.getTimestamp("datesold");
+				// 		String sellerid = rs.getString("sellerid");
+				// 		String buyerid = rs.getString("buyerid");
+				// 		double buyerneedstopay = rs.getDouble("buyerneedstopay");
+				// 		double sellercommission = rs.getDouble("sellercommission");
+
+				// 		System.out.printf("%-15s | %-15s | %-10s | %-10s | %-5.2f | %-5.2f%n",
+				// 			itemid, datesold, sellerid, buyerid, buyerneedstopay, sellercommission);}
+
+				// } catch(SQLException e) {
+				// 	handleSQLException(e);
+				// }
+				continue;
+
+			} else if (choice == '2') {
+				/*TODO: Print Account Balance for Seller */
+				System.out.println("---- Enter Seller ID to search : ");
+				seller = scanner.next();
+				scanner.nextLine();
+				System.out.println("sold item       | sold date       | buyer ID   | price | commissions");
+				System.out.println("--------------------------------------------------------------------");
+				/*
+				   while(rset.next()){
+				   }
+				 */
+				continue;
+			} else if (choice == '3') {
+				/*TODO: Print Seller Ranking */
+				System.out.println("seller ID   | # of items sold | Total Profit (excluding commissions)");
+				System.out.println("--------------------------------------------------------------------");
+				/*
+				   while(rset.next()){
+				   }
+				 */
+				continue;
+			} else if (choice == '4') {
+				/*TODO: Print Buyer Ranking */
+				System.out.println("buyer ID   | # of items purchased | Total Money Spent ");
+				System.out.println("------------------------------------------------------");
+				/*
+				   while(rset.next()){
+				   }
+				 */
+				continue;
+			} else if (choice == 'P' || choice == 'p') {
+				return false;
+			} else {
+				System.out.println("Error: Invalid input is entered. Try again.");
+				continue;
+			}
+		} while(true);
+	}
+
 
 	public static void CheckBuyStatus(){
 		/* TODO: Check the status of the item the current buyer is bidding on */
@@ -795,6 +855,34 @@ public class Auction {
         System.out.println("SQLState: " + e.getSQLState());
         System.out.println("VendorError: " + e.getErrorCode());
     }
+
+
+	private static void refreshBillingStatusByDate() {
+		String check_biding_query = "update items set sold = true where dateposted < CURRENT_TIMESTAMP;";
+
+		try(PreparedStatement ps = conn.prepareStatement(check_biding_query)) {
+			ps.executeUpdate();
+		} catch(SQLException e){
+			handleSQLException(e);
+		}
+
+		String insertBillingQuery = 
+			"INSERT INTO Billing (ItemID, BuyerID, SellerID, DateSold, BuyerNeedsToPay) " +
+			"SELECT I.ItemID, B.BidderID, I.SellerID, I.DatePosted, B.BidPrice " +
+			"FROM Items I " +
+			"INNER JOIN ( " +
+			"    SELECT ItemID, BidderID, BidPrice " +
+			"    FROM Biding B1 " +
+			"    WHERE B1.bidprice = (select max(BidPrice) from Biding B2 where B1.itemid = B2.itemid) " +
+			") B ON I.ItemID = B.ItemID " +
+			"WHERE I.Sold = TRUE AND I.ItemID not in (select itemid from billing);";
+
+			try(PreparedStatement ps = conn.prepareStatement(insertBillingQuery)) {
+				ps.executeUpdate();
+			} catch(SQLException e) {
+				handleSQLException(e);
+			}
+	}
 
 	public static void main(String[] args) {
 		char choice;
