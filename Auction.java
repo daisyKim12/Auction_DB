@@ -705,6 +705,9 @@ public class Auction {
 				continue;
 			}
 
+			//Refresh billing status
+			refreshBillingStatusByDate();
+
 			if (choice == '1') {
 				System.out.println(
 					"----Enter Category to search \n" +
@@ -718,94 +721,141 @@ public class Auction {
 					);
 					//TODO: other and any category debug
 				keyword = scanner.next();
-				String category;
-
+				
 				switch (keyword){
 					case "1":
-						category = String.valueOf(Category.ELECTRONICS);
+						keyword = String.valueOf(Category.ELECTRONICS);
 						break;
 					case "2":
-						category = String.valueOf(Category.BOOKS);
+						keyword = String.valueOf(Category.BOOKS);
 						break;
 					case "3":
-						category = String.valueOf(Category.HOME);
+						keyword = String.valueOf(Category.HOME);
 						break;
 					case "4":
-						category = String.valueOf(Category.CLOTHING);
+						keyword = String.valueOf(Category.CLOTHING);
 						break;
 					case "5":
-						category = String.valueOf(Category.SPORTINGGOODS);
+						keyword = String.valueOf(Category.SPORTINGGOODS);
 						break;
 					case "6":
-						category = String.valueOf(Category.OTHERS);
+						keyword = String.valueOf(Category.OTHERS);
 						break;
 					case "7":
 					default:
-						category = "*";
+						keyword = "*";
 				}
-				
-				//scanner.nextLine();
+				scanner.nextLine();
 
-				//Refresh billing status
-				refreshBillingStatusByDate();
-
-				/*TODO: Print Sold Items per Category */
-				System.out.println("sold item       | sold date       | seller ID   | buyer ID   | price | commissions");
+				System.out.printf("%-10s | %-15s | %-10s | %-10s | %-10s | %-10s\n",
+					"sold item", "sold data", "seller ID", "buyer ID", "price", "commissions");
 				System.out.println("----------------------------------------------------------------------------------");
 
-				// String search_with_category_query = "select itemid, datesold, sellerid, buyerid, buyerneedstopay, sellercommission from billing " + 
-				// 	"where itemid in (select itemid from items where category = ?);";
+				String search_with_category_query = "select itemid, datesold, sellerid, buyerid, buyerneedstopay, sellercommission from billing " + 
+					"where itemid in (select itemid from items where category = ?);";
 				
-				// try(PreparedStatement ps = conn.prepareStatement(search_with_category_query)) {
-				// 	ps.setString(1, category);
-				// 	ResultSet rs = ps.executeQuery();
+				try(PreparedStatement ps = conn.prepareStatement(search_with_category_query)) {
+					ps.setString(1, keyword);
+					ResultSet rs = ps.executeQuery();
 
-				// 	// Check if a user with the provided username exists
-				// 	if (rs.next()) {
-				// 		int itemid = rs.getInt("itemid");
-				// 		Timestamp datesold = rs.getTimestamp("datesold");
-				// 		String sellerid = rs.getString("sellerid");
-				// 		String buyerid = rs.getString("buyerid");
-				// 		double buyerneedstopay = rs.getDouble("buyerneedstopay");
-				// 		double sellercommission = rs.getDouble("sellercommission");
+					// Check if a user with the provided username exists
+					while(rs.next()) {
+						int itemid = rs.getInt("itemid");
+						Timestamp datesold = rs.getTimestamp("datesold");
+						String sellerid = rs.getString("sellerid");
+						String buyerid = rs.getString("buyerid");
+						double buyerneedstopay = rs.getDouble("buyerneedstopay");
+						double sellercommission = rs.getDouble("sellercommission");
 
-				// 		System.out.printf("%-15s | %-15s | %-10s | %-10s | %-5.2f | %-5.2f%n",
-				// 			itemid, datesold, sellerid, buyerid, buyerneedstopay, sellercommission);}
-
-				// } catch(SQLException e) {
-				// 	handleSQLException(e);
-				// }
+						System.out.printf("%-10s | %-15s | %-10s | %-10s | %-8.2f | %-8.2f\n",
+							itemid, datesold, sellerid, buyerid, buyerneedstopay, sellercommission);
+					}
+					System.out.println("");
+				} catch(SQLException e) {
+					handleSQLException(e);
+				}
 				continue;
 
 			} else if (choice == '2') {
-				/*TODO: Print Account Balance for Seller */
 				System.out.println("---- Enter Seller ID to search : ");
 				seller = scanner.next();
 				scanner.nextLine();
-				System.out.println("sold item       | sold date       | buyer ID   | price | commissions");
+				System.out.printf("%-10s | %-15s | %-10s | %-10s | %-10s\n",
+					"sold item", "sold data", "buyer ID", "price", "commissions\n");
 				System.out.println("--------------------------------------------------------------------");
-				/*
-				   while(rset.next()){
-				   }
-				 */
+				
+				String search_with_sellerid_query = "select itemid, datesold, buyerid, buyerneedstopay, sellercommission " +
+				" from billing where sellerid like ?;";
+				
+				try(PreparedStatement ps = conn.prepareStatement(search_with_sellerid_query)) {
+					ps.setString(1, "%"+seller+"%");
+					ResultSet rs = ps.executeQuery();
+
+					// Check if a user with the provided username exists
+					while(rs.next()) {
+						int itemid = rs.getInt("itemid");
+						Timestamp datesold = rs.getTimestamp("datesold");
+						String buyerid = rs.getString("buyerid");
+						double buyerneedstopay = rs.getDouble("buyerneedstopay");
+						double sellercommission = rs.getDouble("sellercommission");
+
+						System.out.printf("%-10s | %-15s | %-10s | %-8.2f | %-8.2f\n",
+							itemid, datesold, buyerid, buyerneedstopay, sellercommission);
+					}
+					System.out.println("");
+				} catch(SQLException e) {
+					handleSQLException(e);
+				}
+				
 				continue;
 			} else if (choice == '3') {
-				/*TODO: Print Seller Ranking */
-				System.out.println("seller ID   | # of items sold | Total Profit (excluding commissions)");
+				System.out.printf("%-10s | %-20s | %-35s\n",
+					"seller ID", "# of items sold", "Total Profit (excluding commissions)");
 				System.out.println("--------------------------------------------------------------------");
-				/*
-				   while(rset.next()){
-				   }
-				 */
+
+				String seller_ranking_query = "SELECT SellerID, COUNT(DISTINCT ItemID) AS NumberOfItemsSold, " +
+					"SUM(SellerNeedsToEarn) AS TotalProfit FROM Billing " +
+					"GROUP BY SellerID ORDER BY TotalProfit DESC;";
+
+				try(PreparedStatement ps = conn.prepareStatement(seller_ranking_query)) {
+					ResultSet rs = ps.executeQuery();
+
+					while(rs.next()) {
+						String sellerid = rs.getString("sellerid");
+						int numberofitemsold = rs.getInt("NumberOfItemsSold");
+						double totalprofit = rs.getDouble("TotalProfit");
+						System.out.printf("%-10s | %-20s | %-35s\n",
+							sellerid, numberofitemsold, totalprofit);
+					}
+					System.out.println("");
+				}catch(SQLException e) {
+					handleSQLException(e);
+				}
 				continue;
 			} else if (choice == '4') {
-				/*TODO: Print Buyer Ranking */
-				System.out.println("buyer ID   | # of items purchased | Total Money Spent ");
+				System.out.printf("%-10s | %-20s | %-35s\n",
+					"buyer ID", "# of items purchased", "Total Money Spent");
 				System.out.println("------------------------------------------------------");
-				/*
-				   while(rset.next()){
-				   }
-				 */
+				
+				String buyer_ranking_query = "SELECT BuyerID, COUNT(DISTINCT ItemID) AS NumberOfItemsPurchased, " +
+					"SUM(BuyerNeedsToPay) AS TotalMoneySpent FROM Billing " +
+					"GROUP BY BuyerID ORDER BY TotalMoneySpent DESC;";
+
+				try(PreparedStatement ps = conn.prepareStatement(buyer_ranking_query)) {
+					ResultSet rs = ps.executeQuery();
+
+					while(rs.next()) {
+						String buyerid = rs.getString("buyerid");
+						int numberofitempurchased = rs.getInt("NumberOfItemsPurchased");
+						double totalmoneyspent = rs.getDouble("TotalMoneySpent");
+						System.out.printf("%-10s | %-20s | %-35s\n",
+							buyerid, numberofitempurchased, totalmoneyspent);
+					}
+					System.out.println("");
+				}catch(SQLException e) {
+					handleSQLException(e);
+				}
+
 				continue;
 			} else if (choice == 'P' || choice == 'p') {
 				return false;
@@ -855,7 +905,6 @@ public class Auction {
         System.out.println("SQLState: " + e.getSQLState());
         System.out.println("VendorError: " + e.getErrorCode());
     }
-
 
 	private static void refreshBillingStatusByDate() {
 		String check_biding_query = "update items set sold = true where dateposted < CURRENT_TIMESTAMP;";
