@@ -310,6 +310,18 @@ public class Auction {
 			return false;
 		}
 
+
+		// Set the sequence value to be higher than the maximum ItemID
+		String set_order_query = "SELECT setval('items_itemid_seq', (SELECT MAX(ItemID) + 1 FROM Items));";
+		try (PreparedStatement ps = conn.prepareStatement(set_order_query)) {
+			ps.executeQuery();
+		} catch (SQLException e) {
+			handleSQLException(e);
+		}
+
+
+
+
 		String insertQuery = "INSERT INTO Items (Category, Description, Condition, SellerID, BuyItNowPrice, DatePosted) " +
                     "VALUES (?, ?, ?, ?, ?, ?)";
 
