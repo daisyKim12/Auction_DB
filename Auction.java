@@ -900,25 +900,71 @@ public class Auction {
 		}
 	}
 
-	// IN PROGRESS
 	public static void CheckAccount(){
 		/* TODO: Check the balance of the current user.  */
 		System.out.println("[Sold Items] \n");
-		System.out.println("item category  | item ID   | sold date | sold price  | buyer ID | commission  ");
+		System.out.printf("%-15s | %-8s | %-25s | %-10s | %-8s | %-10s%n",
+					"item category", "item ID", "sold date", "sold price", "buyer ID", "commission");
 		System.out.println("------------------------------------------------------------------------------");
-		/*
-		   while(rset.next(){
-		   System.out.println();
-		   }
-		 */
+
+		String sold_item_query = "select i.category, b.itemid, b.datesold, b.buyerneedstopay, b.buyerid, b.sellercommission " +
+			"from items as i left join billing b on b.itemid = i.itemid " +
+			"where b.sellerid = ?";
+
+		try(PreparedStatement ps = conn.prepareStatement(sold_item_query)) {
+
+			ps.setString(1, userID);
+
+			ResultSet rs = ps.executeQuery();
+
+			while (rs.next()) {
+				String category = rs.getString("category");
+				int itemID = rs.getInt("itemid");
+				Timestamp dateSold = rs.getTimestamp("datesold");
+				double soldPrice = rs.getDouble("buyerneedstopay");
+				String buyerID = rs.getString("buyerid");
+				double commission = rs.getDouble("sellercommission");
+
+				System.out.printf("%-15s | %-8s | %-25s | %-10.2f | %-8s | %-10.2f%n",
+					category, itemID, dateSold, soldPrice, buyerID, commission);
+			}
+
+		} catch(SQLException e) {
+			handleSQLException(e);
+		}
+
+		System.out.println("");
 		System.out.println("[Purchased Items] \n");
-		System.out.println("item category  | item ID   | purchased date | puchased price  | seller ID ");
+		System.out.printf("%-15s | %-8s | %-25s | %-10s | %-8s%n",
+					"item category", "item ID", "purchased date", "purchased price", "seller ID");
 		System.out.println("--------------------------------------------------------------------------");
-		/*
-		   while(rset.next(){
-		   System.out.println();
-		   }
-		 */
+
+		String purchased_item_query = "select i.category, b.itemid, b.datesold, b.buyerneedstopay, b.sellerid " +
+			"from items as i left join billing b on b.itemid = i.itemid " +
+			"where b.buyerid = ?";
+
+		try(PreparedStatement ps = conn.prepareStatement(purchased_item_query)) {
+
+			ps.setString(1, userID);
+
+			ResultSet rs = ps.executeQuery();
+
+			while (rs.next()) {
+				String category = rs.getString("category");
+				int itemID = rs.getInt("itemid");
+				Timestamp dateSold = rs.getTimestamp("datesold");
+				double soldPrice = rs.getDouble("buyerneedstopay");
+				String sellerID = rs.getString("sellerid");
+
+				System.out.printf("%-15s | %-8s | %-25s | %-10.2f | %-8s%n",
+					category, itemID, dateSold, soldPrice, sellerID);
+			}
+
+		} catch(SQLException e) {
+			handleSQLException(e);
+		}
+
+		System.out.println("");
 	}
 
 	private static void handleSQLException(SQLException e) {
