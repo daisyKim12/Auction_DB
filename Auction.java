@@ -319,9 +319,6 @@ public class Auction {
 			handleSQLException(e);
 		}
 
-
-
-
 		String insertQuery = "INSERT INTO Items (Category, Description, Condition, SellerID, BuyItNowPrice, DatePosted) " +
                     "VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -601,6 +598,8 @@ public class Auction {
 			"ON CONFLICT (ItemID, BidderID) " +
 			"DO UPDATE SET BidPrice = EXCLUDED.BidPrice " +
 			"WHERE EXCLUDED.BidPrice > Biding.BidPrice;";
+
+		//TODO: prevent entering item thats not in the list above
 
 		try (PreparedStatement ps = conn.prepareStatement(bidding_query)) {
 			ps.setInt(1, choice);
@@ -890,10 +889,11 @@ public class Auction {
 					"(SELECT MAX(b2.bidprice) FROM biding b2 WHERE b2.itemid = b1.itemid)) AS b " +
 					"ON i.itemid = b.itemid " +
 					"LEFT JOIN biding AS u on i.itemid = u.itemid " +
-					"WHERE i.itemid in (select itemid from biding where bidderid = ?);";
+					"WHERE i.itemid in (select itemid from biding where bidderid = ?) and u.bidderid = ?;";
 
 		try (PreparedStatement ps = conn.prepareStatement(search_query)) {
 			ps.setString(1, userID);
+			ps.setString(2, userID);
 			ResultSet rs = ps.executeQuery();
 
 			while (rs.next()) {
