@@ -109,6 +109,7 @@ public class Auction {
 					return false;
 				} else if (entered_userPW.equals(storedPassword)) {
 					userID = entered_userID;
+					System.out.println("You are successfully logged in.\n");
                 } else {
 					System.out.println("Error: Incorrect user name or password");
 					return false;
@@ -118,7 +119,6 @@ public class Auction {
 		catch(SQLException e){
 			handleSQLException(e);
 		}
-		System.out.println("You are successfully logged in.\n");
 		return true;
 	}
 
@@ -1105,7 +1105,7 @@ public class Auction {
 					case 'q':
 					case 'Q':
 						System.out.println("Good Bye");
-						/* TODO: close the connection and clean up everything here */
+						/* close the connection and clean up everything here */
 						conn.close();
 						System.exit(1);
 				}
@@ -1115,8 +1115,4 @@ public class Auction {
 			}
 		} while(true);
 	} // End of main 
-
-	/*TODO: error when login unsuccessful it prints out welcome*/
-	/*TODO: error when changing tabs in admin mode*/
-
 } // End of class
