@@ -865,37 +865,23 @@ public class Auction {
 		} while(true);
 	}
 
-	// IN PROGRESS
-	// public static void CheckBuyStatus(){
-	// 	/* TODO: Check the status of the item the current buyer is bidding on */
-	// 	/* Even if you are outbidded or the bid closing date has passed, all the items this user has bidded on must be displayed */
-
-	// 	System.out.println("item ID   | item description   | highest bidder | highest bidding price | your bidding price | bid closing date/time");
-	// 	System.out.println("--------------------------------------------------------------------------------------------------------------------");
-	// 	/*
-	// 	   while(rset.next(){
-	// 	   System.out.println();
-	// 	   }
-	// 	 */
-	// }
-
 	public static void CheckBuyStatus() {
+		/* Check the status of the item the current buyer is bidding on */
+		/* Even if you are outbidded or the bid closing date has passed, all the items this user has bidded on must be displayed */
 		System.out.println("item ID   | item description   | highest bidder | highest bidding price | your bidding price | bid closing date/time");
 		System.out.println("--------------------------------------------------------------------------------------------------------------------");
 
-		String query = "SELECT I.ItemID, I.Description, B.BidderID, B.BidPrice, U.YourBiddingPrice, I.BidClosingDateTime " +
-					"FROM Items I " +
-					"INNER JOIN Biding B ON I.ItemID = B.ItemID " +
-					"LEFT JOIN (SELECT ItemID, BidPrice AS YourBiddingPrice " +
-					"           FROM Biding " +
-					"           WHERE BidderID = ?) U ON I.ItemID = U.ItemID " +
-					"WHERE I.BidClosingDateTime < CURRENT_TIMESTAMP " +
-					"   OR (I.BidClosingDateTime >= CURRENT_TIMESTAMP AND (U.YourBiddingPrice IS NOT NULL OR B.BidderID = ?)) " +
-					"ORDER BY I.ItemID";
+		String search_query = "SELECT i.itemid, i.description, i.dateposted" +
+					", b.bidprice, b.bidderid, u.bidprice AS YourBiddingPrice " +
+					"FROM items AS i " +
+					"LEFT JOIN (SELECT itemid, bidprice, bidderid FROM biding b1 WHERE b1.bidprice = " +
+					"(SELECT MAX(b2.bidprice) FROM biding b2 WHERE b2.itemid = b1.itemid)) AS b " +
+					"ON i.itemid = b.itemid " +
+					"LEFT JOIN biding AS u on i.itemid = u.itemid " +
+					"WHERE i.itemid in (select itemid from biding where bidderid = ?);";
 
-		try (PreparedStatement ps = conn.prepareStatement(query)) {
+		try (PreparedStatement ps = conn.prepareStatement(search_query)) {
 			ps.setString(1, userID);
-			ps.setString(2, userID);
 			ResultSet rs = ps.executeQuery();
 
 			while (rs.next()) {
@@ -904,16 +890,17 @@ public class Auction {
 				String highestBidder = rs.getString("BidderID");
 				double highestBidPrice = rs.getDouble("BidPrice");
 				double yourBidPrice = rs.getDouble("YourBiddingPrice");
-				Timestamp bidClosingDateTime = rs.getTimestamp("BidClosingDateTime");
-
-				System.out.printf("%-9d | %-19s | %-13s | %-20.2f | %-18.2f | %s\n",
-						itemID, description, highestBidder, highestBidPrice, yourBidPrice, bidClosingDateTime);
+				Timestamp dateposted = rs.getTimestamp("DatePosted");
+				
+				System.out.printf("%-9d | %-20s | %-14s | %-20.2f  | %-18.2f | %s\n",
+						itemID, description, highestBidder, highestBidPrice, yourBidPrice, dateposted);
 			}
 		} catch (SQLException e) {
 			handleSQLException(e);
 		}
 	}
 
+	// IN PROGRESS
 	public static void CheckAccount(){
 		/* TODO: Check the balance of the current user.  */
 		System.out.println("[Sold Items] \n");
