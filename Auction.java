@@ -746,10 +746,8 @@ public class Auction {
 					"    3. Home\n" +
 					"    4. Clothing\n" +
 					"    5. Sporting Goods\n" +
-					"    6. Other Categories\n" +
-					"    7. Any Categories\n"
+					"    6. Other Categories\n"
 					);
-					//TODO: other and any category debug
 				keyword = scanner.next();
 				
 				switch (keyword){
@@ -769,11 +767,9 @@ public class Auction {
 						keyword = String.valueOf(Category.SPORTINGGOODS);
 						break;
 					case "6":
+					default:
 						keyword = String.valueOf(Category.OTHERS);
 						break;
-					case "7":
-					default:
-						keyword = "*";
 				}
 				scanner.nextLine();
 
@@ -781,8 +777,9 @@ public class Auction {
 					"sold item", "sold data", "seller ID", "buyer ID", "price", "commissions");
 				System.out.println("----------------------------------------------------------------------------------");
 
-				String search_with_category_query = "select itemid, datesold, sellerid, buyerid, buyerneedstopay, sellercommission from billing " + 
-					"where itemid in (select itemid from items where category = ?);";
+				String search_with_category_query = "select b.itemid, b.datesold, b.sellerid, b.buyerid, b.buyerneedstopay, b.sellercommission " + 
+					"from billing as b " + 
+					"where b.itemid in (select itemid from items where category = ?);";
 				
 				try(PreparedStatement ps = conn.prepareStatement(search_with_category_query)) {
 					ps.setString(1, keyword);
