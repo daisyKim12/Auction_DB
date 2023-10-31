@@ -520,7 +520,6 @@ public class Auction {
 			return false;
 		}
 		
-		//TODO: time left bug
 		// search all the item by category, condition, keyword search, seller id, date posted
 		System.out.printf("\n<Search result for keyword: %s>\n", keyword);
 		System.out.printf("%-7s | %-20s | %-10s | %-10s | %-15s | %-20s | %-10s|\n",
@@ -569,11 +568,15 @@ public class Auction {
 					list_items.add(get_itemID);
 
 					String get_timeleft = rs.getString("timeleft");
-					if(get_timeleft.indexOf(" days") == 0) {
+					//System.out.println(get_timeleft);
+					if(get_timeleft.indexOf(" days") == -1) {
 						get_timeleft = "d-day";
 					} else {
-						get_timeleft = String.valueOf(get_timeleft.indexOf(" days")) + " days";
+						String[] parts = get_timeleft.split(" days");
+
+						get_timeleft = parts[0] + " days";
 					}
+
 					System.out.printf("%-7s | %-20s | %-10s | %-10s | %-15f | %-20s | %-10s|\n",
 						get_itemID, get_description, get_condition, get_sellerid, get_buyitnowprice, 
 						String.valueOf(get_highest_bid) + get_highest_bidder, get_timeleft);
