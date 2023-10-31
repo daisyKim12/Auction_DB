@@ -392,6 +392,9 @@ public class Auction {
 		String keyword, seller;
 		Timestamp datePosted;
 		boolean flag_catg = true, flag_cond = true;
+
+		//refresh billing by datepassed not working
+		refreshBillingStatusByDate();
 		
 		do {
 
@@ -894,7 +897,9 @@ public class Auction {
 	}
 
 	public static void CheckBuyStatus() {
-		//TODO: datepassed not working
+		//refresh billing by datepassed not working
+		refreshBillingStatusByDate();
+
 		/* Check the status of the item the current buyer is bidding on */
 		/* Even if you are outbidded or the bid closing date has passed, all the items this user has bidded on must be displayed */
 		System.out.println("item ID   | item description   | highest bidder | highest bidding price | your bidding price | bid closing date/time");
@@ -931,6 +936,9 @@ public class Auction {
 	}
 
 	public static void CheckAccount(){
+		//refresh billing by datepassed not working
+		refreshBillingStatusByDate();
+
 		/* Check the balance of the current user.  */
 		System.out.println("[Sold Items] \n");
 		System.out.printf("%-15s | %-8s | %-25s | %-10s | %-8s | %-10s%n",
@@ -1023,11 +1031,11 @@ public class Auction {
 			") B ON I.ItemID = B.ItemID " +
 			"WHERE I.Sold = TRUE AND I.ItemID not in (select itemid from billing);";
 
-			try(PreparedStatement ps = conn.prepareStatement(insertBillingQuery)) {
-				ps.executeUpdate();
-			} catch(SQLException e) {
-				handleSQLException(e);
-			}
+		try(PreparedStatement ps = conn.prepareStatement(insertBillingQuery)) {
+			ps.executeUpdate();
+		} catch(SQLException e) {
+			handleSQLException(e);
+		}
 	}
 
 	public static void main(String[] args) {
