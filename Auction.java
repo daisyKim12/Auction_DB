@@ -344,7 +344,7 @@ public class Auction {
 	}
 
 	public static void CheckSellStatus(){
-		/* TODO: Check the status of the item the current user is selling */
+		/* Check the status of the item the current user is selling */
 
 		System.out.printf("%-10s | %-30s | %-20s | %-10s | %s%n", "Item ID", "Description", "Bidder (Buyer ID)", "Bid Price", "Bidding Date/Time");
 		System.out.println("------------------------------------------------------------");
@@ -519,12 +519,16 @@ public class Auction {
 			System.out.println("Error: Invalid input is entered. Try again.");
 			return false;
 		}
-
+		
+		//TODO: time left bug
 		// search all the item by category, condition, keyword search, seller id, date posted
 		System.out.printf("\n<Search result for keyword: %s>\n", keyword);
 		System.out.printf("%-7s | %-20s | %-10s | %-10s | %-15s | %-20s | %-10s|\n",
                     "Item ID", "Item description", "Condition", "Seller", "Buy-It-Now", "Highest Bid(Bidder)", "Time left");
 		System.out.println("---------------------------------------------------------------------------------------------------------------");
+
+		//list for saving item that are searched
+		List<Integer> list_items = new ArrayList<Integer>();
 
 		String search_query = "SELECT i.itemid, i.description, i.condition, i.sellerid, i.buyitnowprice, (i.dateposted - CURRENT_TIMESTAMP) as timeleft" +
 			", b.bidprice, b.bidderid " +
@@ -562,6 +566,8 @@ public class Auction {
 					double get_highest_bid = rs.getDouble("bidprice");
 					String get_highest_bidder = "(" + rs.getString("bidderid") + ")";
 					
+					list_items.add(get_itemID);
+
 					String get_timeleft = rs.getString("timeleft");
 					if(get_timeleft.indexOf(" days") == 0) {
 						get_timeleft = "d-day";
@@ -583,57 +589,66 @@ public class Auction {
 
 		try {
 			choice = scanner.nextInt();
-			scanner.nextLine();
-			System.out.println("     Price: ");
-			price = scanner.nextDouble();
-			scanner.nextLine();
+			if(!list_items.contains(choice)) {
+				System.out.println("itemid not in the list");
+				price = 0.0;
+			}else {
+				scanner.nextLine();
+				System.out.println("     Price: ");
+				price = scanner.nextDouble();
+				scanner.nextLine();
+			}
 
 		} catch (java.util.InputMismatchException e) {
 			System.out.println("Error: Invalid input is entered. Try again.");
 			return false;
 		}
 
-		String bidding_query = "INSERT INTO Biding (ItemID, BidPrice, BidderID, DatePurchase) " +
-			"VALUES (?, ?, ?, CURRENT_TIMESTAMP) " +
-			"ON CONFLICT (ItemID, BidderID) " +
-			"DO UPDATE SET BidPrice = EXCLUDED.BidPrice " +
-			"WHERE EXCLUDED.BidPrice > Biding.BidPrice;";
+		//prevent entering item thats not in the list above
+		if(list_items.contains(choice)) {
 
-		//TODO: prevent entering item thats not in the list above
+			String bidding_query = "INSERT INTO Biding (ItemID, BidPrice, BidderID, DatePurchase) " +
+				"VALUES (?, ?, ?, CURRENT_TIMESTAMP) " +
+				"ON CONFLICT (ItemID, BidderID) " +
+				"DO UPDATE SET BidPrice = EXCLUDED.BidPrice " +
+				"WHERE EXCLUDED.BidPrice > Biding.BidPrice;";
 
-		try (PreparedStatement ps = conn.prepareStatement(bidding_query)) {
-			ps.setInt(1, choice);
-		    ps.setDouble(2, price);
-    		ps.setString(3, userID);
-		    ps.executeUpdate();
 
-		} catch (SQLException e) {
-			handleSQLException(e);
+			try (PreparedStatement ps = conn.prepareStatement(bidding_query)) {
+				ps.setInt(1, choice);
+				ps.setDouble(2, price);
+				ps.setString(3, userID);
+				ps.executeUpdate();
+
+			} catch (SQLException e) {
+				handleSQLException(e);
+			}
+			
+			String check_biding_status_query = "select i.sold, b.highest from items i join " + 
+				"(select itemid, max(bidprice) as highest from biding group by itemid having itemid = ?) b on i.itemid = b.itemid";
+
+
+			try(PreparedStatement ps = conn.prepareStatement(check_biding_status_query)) {
+				ps.setInt(1, choice);
+
+				ResultSet rs = ps.executeQuery();
+
+				while (rs.next()) {
+					boolean get_sold = rs.getBoolean("sold");
+					double get_highest = rs.getDouble("highest");
+					
+					if(get_sold == true) {
+						System.out.println("Congratulations, the item is yours now.\n"); 
+					} else if(get_highest == price) {
+						System.out.println("Congratulations, you are the highest bidder.\n"); 
+					}
+				}
+			} catch (SQLException e) {
+				handleSQLException(e);
+			}
+
 		}
 		
-		String check_biding_status_query = "select i.sold, b.highest from items i join " + 
-			"(select itemid, max(bidprice) as highest from biding group by itemid having itemid = ?) b on i.itemid = b.itemid";
-
-
-		try(PreparedStatement ps = conn.prepareStatement(check_biding_status_query)) {
-			ps.setInt(1, choice);
-
-			ResultSet rs = ps.executeQuery();
-
-			while (rs.next()) {
-				boolean get_sold = rs.getBoolean("sold");
-				double get_highest = rs.getDouble("highest");
-				
-				if(get_sold == true) {
-					System.out.println("Congratulations, the item is yours now.\n"); 
-				} else if(get_highest == price) {
-					System.out.println("Congratulations, you are the highest bidder.\n"); 
-				}
-			}
-		} catch (SQLException e) {
-			handleSQLException(e);
-		}
-
 		return true;
 			
 	}
@@ -655,7 +670,6 @@ public class Auction {
 			}
 			System.out.print("---- password: ");
 			adminpass = scanner.nextLine();
-			// TODO: check the admin's account and password.
 		} catch (java.util.InputMismatchException e) {
 			System.out.println("Error: Invalid input is entered. Try again.");
 			return false;
@@ -877,6 +891,7 @@ public class Auction {
 	}
 
 	public static void CheckBuyStatus() {
+		//TODO: datepassed not working
 		/* Check the status of the item the current buyer is bidding on */
 		/* Even if you are outbidded or the bid closing date has passed, all the items this user has bidded on must be displayed */
 		System.out.println("item ID   | item description   | highest bidder | highest bidding price | your bidding price | bid closing date/time");
@@ -913,7 +928,7 @@ public class Auction {
 	}
 
 	public static void CheckAccount(){
-		/* TODO: Check the balance of the current user.  */
+		/* Check the balance of the current user.  */
 		System.out.println("[Sold Items] \n");
 		System.out.printf("%-15s | %-8s | %-25s | %-10s | %-8s | %-10s%n",
 					"item category", "item ID", "sold date", "sold price", "buyer ID", "commission");
