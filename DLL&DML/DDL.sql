@@ -1,9 +1,8 @@
 -- drop table
-DROP TABLE Billing;
-DROP TABLE Biding;
-DROP TABLE Items;
-DROP TABLE Users;
-DROP SEQUENCE item_id_sequence;
+DROP TABLE IF EXISTS Billing;
+DROP TABLE IF EXISTS Biding;
+DROP TABLE IF EXISTS Items;
+DROP TABLE IF EXISTS Users;
 
 
 -- Create a table to store user data
@@ -14,12 +13,9 @@ CREATE TABLE Users (
     PRIMARY KEY (UserID)
 );
 
--- Create a sequence to generate ItemID
-CREATE SEQUENCE item_id_sequence;
-
 -- Create a table to store item data with automatically generated ItemID
 CREATE TABLE Items (
-    ItemID INT DEFAULT nextval('item_id_sequence'),
+    ItemID SERIAL,
     Category VARCHAR(100) NOT NULL check ( Category in (
         'ELECTRONICS',
 		'BOOKS',
