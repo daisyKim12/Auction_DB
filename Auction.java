@@ -199,7 +199,7 @@ public class Auction {
 					"    2. Books\n" +
 					"    3. Home\n" +
 					"    4. Clothing\n" +
-					"    5. Sporting Goods\n" +
+					"    5. Sporting Goods\n" +∏
 					"    6. Other Categories\n" +
 					"    P. Go Back to Previous Menu"
 					);
