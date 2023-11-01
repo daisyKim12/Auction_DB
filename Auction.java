@@ -1039,15 +1039,15 @@ public class Auction {
 		char choice;
 		boolean ret;
 
-		// if(args.length<2){
-		// 	System.out.println("Usage: java Auction postgres_id password");
-		// 	System.exit(1);
-		// }
+		if(args.length<2){
+			System.out.println("Usage: java Auction postgres_id password");
+			System.exit(1);
+		}
 
 		try{
-            //    	conn = DriverManager.getConnection("jdbc:postgresql://localhost/"+args[0], args[0], args[1]); 
+            conn = DriverManager.getConnection("jdbc:postgresql://localhost/"+args[0], args[0], args[1]); 
             // Connection conn = DriverManager.getConnection("jdbc:postgresql://localhost/bnam", "bnam", "changethis"); 
-			conn = DriverManager.getConnection("jdbc:postgresql://localhost/auction", "daisy12", "dnjf1000"); 
+			//conn = DriverManager.getConnection("jdbc:postgresql://localhost/auction", "daisy12", "dnjf1000"); 
 		}
 		catch(SQLException e){
 			System.out.println("SQLException : " + e);	

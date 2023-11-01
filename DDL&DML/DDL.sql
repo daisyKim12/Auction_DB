@@ -84,7 +84,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER update_item_sold_trigger
 AFTER INSERT ON Biding
 FOR EACH ROW
-EXECUTE FUNCTION update_item_sold();
+EXECUTE PROCEDURE update_item_sold();
 
 -- auto calculate payment
 CREATE OR REPLACE FUNCTION update_billing() RETURNS TRIGGER AS $$
@@ -98,4 +98,4 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER update_billing_trigger
 BEFORE INSERT ON Billing
 FOR EACH ROW
-EXECUTE FUNCTION update_billing();
+EXECUTE PROCEDURE update_billing();
